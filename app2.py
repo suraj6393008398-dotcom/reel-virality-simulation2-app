@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="Reel Virality Simulator", layout="wide")
 
 st.title(" Instagram Reel Virality Simulator")
-st.write("")
 
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -15,7 +14,7 @@ if "show_history" not in st.session_state:
 if "show_comparison" not in st.session_state:
     st.session_state.show_comparison = False
 
-# Sidebar inputs
+# Sidebar
 st.sidebar.header(" Input Parameters")
 
 v0_input = st.sidebar.text_input("Initial Viewers (V0)")
@@ -26,7 +25,7 @@ duration_input = st.sidebar.text_input("Time Duration (T)")
 
 run_button = st.sidebar.button(" Run Simulation")
 
-# ✅ FIXED Simulation function (with rounding + correct steps)
+# Simulation function
 def simulate_virality(V0, g, d, T, N):
     t = np.arange(0, int(T))
     viewers_list = []
@@ -37,19 +36,12 @@ def simulate_virality(V0, g, d, T, N):
     for i in t:
         current_V = round(V, 2)
 
-        growth = g * current_V * (1 - current_V / N)
-        decay = d * current_V
+        growth = round(g * current_V * (1 - current_V / N), 2)
+        decay = round(d * current_V, 2)
 
-        # ✅ rounding like sir
-        growth = round(growth, 2)
-        decay = round(decay, 2)
-
-        next_V = current_V + growth - decay
-        next_V = round(next_V, 2)
-
+        next_V = round(current_V + growth - decay, 2)
         next_V = max(0, min(next_V, N))
 
-        # save for table
         table_data.append({
             "Day": i,
             "V(t)": current_V,
@@ -90,34 +82,32 @@ if run_button:
             "graph_data": viewers
         })
 
-        # Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric(" Peak Viewers", f"{int(peak_val):,}")
         col2.metric(" Time to Peak", f"{int(peak_time)} units")
         col3.metric(" Final Status", f"{int(final_val):,}")
 
-        # ✅ TABLE (important for exam)
+        # Table
         st.subheader(" Step-wise Calculation")
         df = pd.DataFrame(table)
         st.dataframe(df, use_container_width=True)
 
-        # Graph
+        # ✅ MAIN GRAPH (NO DOTS)
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(t, viewers, marker='o', linewidth=3)
+        ax.plot(t, viewers, linewidth=3)   # ❌ no marker
         ax.fill_between(t, viewers, alpha=0.1)
 
         ax.set_xlabel("Time (Days)")
         ax.set_ylabel("Viewers")
-        ax.set_title("Viral Growth (Step-wise)")
+        ax.set_title("Viral Growth Curve")
         ax.grid(True, linestyle='--', alpha=0.5)
 
         st.pyplot(fig)
 
     except:
-        st.error(" Please enter valid numeric values in all fields")
+        st.error(" Please enter valid numeric values")
 
-st.write("")
-
+# History
 history_count = len(st.session_state.history)
 
 colA, colB = st.columns(2)
@@ -132,13 +122,12 @@ with colB:
         if st.button(" Show Comparison"):
             st.session_state.show_comparison = True
 
-# History
 if st.session_state.show_history:
     st.subheader(" Simulation History")
 
     if st.session_state.history:
         history_df = pd.DataFrame(st.session_state.history).drop(columns=['graph_data'])
-        st.dataframe(history_df, use_container_width=True)
+        st.dataframe(history_df)
 
         if st.button(" Clear All History"):
             st.session_state.history = []
@@ -146,18 +135,7 @@ if st.session_state.show_history:
             st.session_state.show_comparison = False
             st.rerun()
 
-        for i, run in enumerate(st.session_state.history):
-            if st.button(f"Show Graph for Run {i+1}", key=f"run_{i}"):
-                fig_single, ax_single = plt.subplots(figsize=(10, 4))
-                ax_single.plot(run['graph_data'], marker='o')
-                ax_single.fill_between(range(len(run['graph_data'])), run['graph_data'], alpha=0.1)
-                ax_single.set_title(f"Run {i+1}")
-                ax_single.grid(True, linestyle='--', alpha=0.5)
-                st.pyplot(fig_single)
-    else:
-        st.info("No history available. Run simulation first.")
-
-# Comparison
+# Comparison Graph
 if st.session_state.show_comparison:
     st.subheader(" Comparison")
 
@@ -165,7 +143,7 @@ if st.session_state.show_comparison:
         fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
 
         for i, run in enumerate(st.session_state.history):
-            ax_comp.plot(run['graph_data'], marker='o', label=f"Run {i+1}")
+            ax_comp.plot(run['graph_data'], linewidth=2, label=f"Run {i+1}")  # ❌ no marker
 
         ax_comp.set_title("Comparison of Runs")
         ax_comp.grid(True, linestyle='--', alpha=0.6)
@@ -173,4 +151,4 @@ if st.session_state.show_comparison:
 
         st.pyplot(fig_comp)
     else:
-        st.warning("Run at least 2 times for comparison")
+        st.warning("Run at least 2 times")
