@@ -18,28 +18,51 @@ if "show_comparison" not in st.session_state:
 # Sidebar inputs
 st.sidebar.header(" Input Parameters")
 
-v0_input = st.sidebar.text_input("Initial Viewers (V0)", placeholder="Enter initial viewers")
-total_pop_input = st.sidebar.text_input("Total Audience (N)", placeholder="Enter total audience")
-growth_input = st.sidebar.text_input("Growth Rate", placeholder="Enter growth rate")
-decay_input = st.sidebar.text_input("Decay Rate", placeholder="Enter decay rate")
-duration_input = st.sidebar.text_input("Time Duration (T)", placeholder="Enter total duration")
+v0_input = st.sidebar.text_input("Initial Viewers (V0)")
+total_pop_input = st.sidebar.text_input("Total Audience (N)")
+growth_input = st.sidebar.text_input("Growth Rate")
+decay_input = st.sidebar.text_input("Decay Rate")
+duration_input = st.sidebar.text_input("Time Duration (T)")
 
 run_button = st.sidebar.button(" Run Simulation")
 
-# Simulation function (S0 removed)
+# ✅ FIXED Simulation function (with rounding + correct steps)
 def simulate_virality(V0, g, d, T, N):
     t = np.arange(0, int(T))
     viewers_list = []
-    V = V0   
+    table_data = []
+
+    V = float(V0)
 
     for i in t:
-        new_views = g * V * (1 - V / N)
-        drop_off = d * V     
-        V = V + new_views - drop_off
-        V = max(0, min(V, N))       
-        viewers_list.append(V)    
+        current_V = round(V, 2)
 
-    return t, viewers_list
+        growth = g * current_V * (1 - current_V / N)
+        decay = d * current_V
+
+        # ✅ rounding like sir
+        growth = round(growth, 2)
+        decay = round(decay, 2)
+
+        next_V = current_V + growth - decay
+        next_V = round(next_V, 2)
+
+        next_V = max(0, min(next_V, N))
+
+        # save for table
+        table_data.append({
+            "Day": i,
+            "V(t)": current_V,
+            "Growth": growth,
+            "Decay": decay,
+            "V(t+1)": next_V
+        })
+
+        viewers_list.append(current_V)
+        V = next_V
+
+    return t, viewers_list, table_data
+
 
 # Run simulation
 if run_button:
@@ -50,10 +73,12 @@ if run_button:
         decay_rate = float(decay_input)
         duration = int(duration_input)
 
-        t, viewers = simulate_virality(v0, growth_rate, decay_rate, duration, total_pop)     
+        t, viewers, table = simulate_virality(
+            v0, growth_rate, decay_rate, duration, total_pop
+        )
 
         peak_val = max(viewers)
-        peak_time = t[viewers.index(peak_val)]
+        peak_time = viewers.index(peak_val)
         final_val = viewers[-1]
 
         st.session_state.history.append({
@@ -65,28 +90,33 @@ if run_button:
             "graph_data": viewers
         })
 
+        # Metrics
         col1, col2, col3 = st.columns(3)
-
         col1.metric(" Peak Viewers", f"{int(peak_val):,}")
         col2.metric(" Time to Peak", f"{int(peak_time)} units")
         col3.metric(" Final Status", f"{int(final_val):,}")
 
+        # ✅ TABLE (important for exam)
+        st.subheader(" Step-wise Calculation")
+        df = pd.DataFrame(table)
+        st.dataframe(df, use_container_width=True)
+
+        # Graph
         fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(t, viewers, marker='o', linewidth=3)
+        ax.fill_between(t, viewers, alpha=0.1)
 
-        ax.plot(t, viewers, color='#833AB4', linewidth=3)
-        ax.fill_between(t, viewers, color='#FD1D1D', alpha=0.1)     
-
-        ax.set_xlabel("Time")
+        ax.set_xlabel("Time (Days)")
         ax.set_ylabel("Viewers")
-        ax.set_title("Reel Growth Curve")
-        ax.grid(True, linestyle='--', alpha=0.5)     
+        ax.set_title("Viral Growth (Step-wise)")
+        ax.grid(True, linestyle='--', alpha=0.5)
 
         st.pyplot(fig)
 
     except:
         st.error(" Please enter valid numeric values in all fields")
 
-st.write("")  
+st.write("")
 
 history_count = len(st.session_state.history)
 
@@ -119,13 +149,10 @@ if st.session_state.show_history:
         for i, run in enumerate(st.session_state.history):
             if st.button(f"Show Graph for Run {i+1}", key=f"run_{i}"):
                 fig_single, ax_single = plt.subplots(figsize=(10, 4))
-
-                ax_single.plot(run['graph_data'], linewidth=3)
+                ax_single.plot(run['graph_data'], marker='o')
                 ax_single.fill_between(range(len(run['graph_data'])), run['graph_data'], alpha=0.1)
-
                 ax_single.set_title(f"Run {i+1}")
-                ax_single.grid(True, linestyle='--', alpha=0.5) 
-
+                ax_single.grid(True, linestyle='--', alpha=0.5)
                 st.pyplot(fig_single)
     else:
         st.info("No history available. Run simulation first.")
@@ -135,10 +162,10 @@ if st.session_state.show_comparison:
     st.subheader(" Comparison")
 
     if len(st.session_state.history) > 1:
-        fig_comp, ax_comp = plt.subplots(figsize=(10, 4))   
+        fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
 
         for i, run in enumerate(st.session_state.history):
-            ax_comp.plot(run['graph_data'], linewidth=2, label=f"Run {i+1}")
+            ax_comp.plot(run['graph_data'], marker='o', label=f"Run {i+1}")
 
         ax_comp.set_title("Comparison of Runs")
         ax_comp.grid(True, linestyle='--', alpha=0.6)
