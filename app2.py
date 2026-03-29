@@ -7,6 +7,7 @@ st.set_page_config(page_title="Reel Virality Simulator", layout="wide")
 
 st.title(" Instagram Reel Virality Simulator")
 
+# Session states
 if "history" not in st.session_state:
     st.session_state.history = []
 if "show_history" not in st.session_state:
@@ -14,7 +15,7 @@ if "show_history" not in st.session_state:
 if "show_comparison" not in st.session_state:
     st.session_state.show_comparison = False
 
-# Sidebar
+# Sidebar Inputs
 st.sidebar.header(" Input Parameters")
 
 v0_input = st.sidebar.text_input("Initial Viewers (V0)")
@@ -25,7 +26,7 @@ duration_input = st.sidebar.text_input("Time Duration (T)")
 
 run_button = st.sidebar.button(" Run Simulation")
 
-# Simulation function
+# Simulation Function (with rounding)
 def simulate_virality(V0, g, d, T, N):
     t = np.arange(0, int(T))
     viewers_list = []
@@ -56,7 +57,7 @@ def simulate_virality(V0, g, d, T, N):
     return t, viewers_list, table_data
 
 
-# Run simulation
+# Run Simulation
 if run_button:
     try:
         v0 = int(v0_input)
@@ -82,19 +83,15 @@ if run_button:
             "graph_data": viewers
         })
 
+        # Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric(" Peak Viewers", f"{int(peak_val):,}")
         col2.metric(" Time to Peak", f"{int(peak_time)} units")
         col3.metric(" Final Status", f"{int(final_val):,}")
 
-        # Table
-        st.subheader(" Step-wise Calculation")
-        df = pd.DataFrame(table)
-        st.dataframe(df, use_container_width=True)
-
-        # ✅ MAIN GRAPH (NO DOTS)
+        # ✅ GRAPH FIRST (NO DOTS)
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(t, viewers, linewidth=3)   # ❌ no marker
+        ax.plot(t, viewers, linewidth=3)
         ax.fill_between(t, viewers, alpha=0.1)
 
         ax.set_xlabel("Time (Days)")
@@ -104,10 +101,15 @@ if run_button:
 
         st.pyplot(fig)
 
+        # ✅ TABLE BELOW GRAPH
+        st.subheader(" Step-wise Calculation")
+        df = pd.DataFrame(table)
+        st.dataframe(df, use_container_width=True)
+
     except:
         st.error(" Please enter valid numeric values")
 
-# History
+# History Section
 history_count = len(st.session_state.history)
 
 colA, colB = st.columns(2)
@@ -127,7 +129,7 @@ if st.session_state.show_history:
 
     if st.session_state.history:
         history_df = pd.DataFrame(st.session_state.history).drop(columns=['graph_data'])
-        st.dataframe(history_df)
+        st.dataframe(history_df, use_container_width=True)
 
         if st.button(" Clear All History"):
             st.session_state.history = []
@@ -135,7 +137,7 @@ if st.session_state.show_history:
             st.session_state.show_comparison = False
             st.rerun()
 
-# Comparison Graph
+# Comparison Graph (NO DOTS)
 if st.session_state.show_comparison:
     st.subheader(" Comparison")
 
@@ -143,7 +145,7 @@ if st.session_state.show_comparison:
         fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
 
         for i, run in enumerate(st.session_state.history):
-            ax_comp.plot(run['graph_data'], linewidth=2, label=f"Run {i+1}")  # ❌ no marker
+            ax_comp.plot(run['graph_data'], linewidth=2, label=f"Run {i+1}")
 
         ax_comp.set_title("Comparison of Runs")
         ax_comp.grid(True, linestyle='--', alpha=0.6)
