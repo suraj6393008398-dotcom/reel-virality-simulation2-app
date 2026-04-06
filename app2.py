@@ -86,7 +86,7 @@ if run_button:
         # Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric(" Peak Viewers", f"{int(peak_val):,}")
-        col2.metric(" Time to Peak", f"{int(peak_time)} units")
+        col2.metric(" Time to Peak", f"{int(peak_time)} Days")
         col3.metric(" Final Status", f"{int(final_val):,}")
 
         # ✅ GRAPH FIRST (NO DOTS)
